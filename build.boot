@@ -4,3 +4,5 @@
                           [org.clojure/clojure "1.9.0-alpha14"
                            :scope "provided"]]
           :source-paths #{"src"})
+
+(require '[penny-profit.boot-flow :as flow])
