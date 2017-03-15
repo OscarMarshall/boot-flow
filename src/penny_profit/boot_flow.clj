@@ -59,18 +59,19 @@
                              branches)
               branch   (cond
                          name                   (str "feature/" name)
-                         (= (count features) 1) (first features))]
+                         (= (count features) 1) (first features))
+              name     (or name (nth (re-matches #"feature/(.*)" branch) 1))]
           (cond
             (nil? branch)
             (throw (Exception. "Please specify feature name"))
 
             (contains? branches branch)
-            (do (util/info "Resuming %s...%n" branch)
+            (do (util/info "Resuming feature: %s...%n" name)
                 (git/git-checkout repo branch)
                 (((feature-start branch) handler) fileset))
 
             :else
-            (do (util/info "Beginning %s...%n" branch)
+            (do (util/info "Beginning feature: %s...%n" name)
                 (git/git-checkout repo branch true false "develop")
                 (((feature-switch branch) handler) fileset))))))))
 
