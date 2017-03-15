@@ -2,6 +2,8 @@
   (:require [clj-jgit.porcelain :as git]
             [clj-jgit.querying :as gitq]))
 
+(set! *warn-on-reflection* true)
+
 (defn feature-start [_] identity)
 
 (defn feature-switch [_] identity)
