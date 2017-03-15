@@ -53,10 +53,7 @@
               (do (git/git-checkout repo branch)
                   (((feature-start branch) handler) fileset))
 
-              (contains? branches "develop")
-              (do (git/git-checkout repo branch true false "develop")
-                  (((feature-switch branch) handler) fileset))
-
               :else
-              (throw (Exception. "Please run init task"))))
+              (do (git/git-checkout repo branch true false "develop")
+                  (((feature-switch branch) handler) fileset))))
           (throw (Exception. "Please commit or cache your changes")))))))
