@@ -6,7 +6,7 @@
             [clj-jgit.querying :as gitq]
             [clojure.set :as set])
   (:import (java.io FileNotFoundException)
-           (org.eclipse.jgit.api MergeCommand MergeCommand$FastForwardMode)
+           (org.eclipse.jgit.api MergeCommand$FastForwardMode)
            (org.eclipse.jgit.lib ObjectId Ref)))
 
 (set! *warn-on-reflection* true)
