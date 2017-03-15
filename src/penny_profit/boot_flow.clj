@@ -21,6 +21,10 @@
 (defn dirty? [repo]
   (not (clean? repo)))
 
+(defn ensure-clean [repo]
+  (when (dirty? repo)
+    (throw (Exception. "Please commit or stash your changes"))))
+
 (defn list-branches [repo]
   (into #{}
         (comp (map (fn [^Ref ref]
@@ -51,8 +55,7 @@
   (fn [handler]
     (fn [fileset]
       (let [repo (git/load-repo ".")]
-        (when (dirty? repo)
-          (throw (Exception. "Please commit or stash your changes")))
+        (ensure-clean repo)
         (let [branches (list-branches repo)
               features (into #{}
                              (filter #(re-matches #"feature/.*" %))
@@ -79,8 +82,7 @@
   (fn [handler]
     (fn [fileset]
       (let [repo (git/load-repo ".")]
-        (when (dirty? repo)
-          (throw (Exception. "Please commit or stash your changes")))
+        (ensure-clean repo)
         (let [branch        (git/git-branch-current repo)
               [_ type name] (re-matches #"(feature)/(.*)" branch)]
           (util/info "Finishing %s: %s...%n" type name)
