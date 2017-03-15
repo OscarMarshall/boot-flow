@@ -14,8 +14,8 @@
 (set! *warn-on-reflection* true)
 
 (defn feature-finish [_] identity)
+(defn feature-resume [_] identity)
 (defn feature-start [_] identity)
-(defn feature-switch [_] identity)
 
 (def current-version (atom nil))
 
@@ -95,7 +95,7 @@
             (contains? branches branch)
             (do (util/info "Resuming feature: %s...%n" name)
                 (git/git-checkout repo branch)
-                (((feature-switch branch) handler) fileset))
+                (((feature-resume branch) handler) fileset))
 
             :else
             (do (util/info "Starting feature: %s...%n" name)
