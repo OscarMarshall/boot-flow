@@ -16,6 +16,9 @@
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
+(defn release-resume [_] identity)
+(defn release-start [_] identity)
+(defn version-bump [_] identity)
 
 (def current-version (atom nil))
 
@@ -101,6 +104,40 @@
             (do (util/info "Starting feature: %s...%n" name)
                 (git/git-checkout repo branch true false "develop")
                 (((feature-start branch) handler) fileset))))))))
+
+(deftask release [t type TYPE kw "either :major or :minor"]
+  (fn [handler]
+    (fn [fileset]
+      (let [repo (git/load-repo ".")]
+        (ensure-clean repo)
+        (let [branches (list-branches repo)
+              releases (into #{}
+                             (filter #(re-matches #"release/.*" %))
+                             branches)]
+          (case (count releases)
+            0 (do (read-version!)
+                  (case type
+                    :major (bump-major!)
+                    :minor (bump-minor!))
+                  (let [ver    (version-string)
+                        branch (str "release/" ver)]
+                    (util/info "Starting release: %s...%n" ver)
+                    (git/git-checkout repo branch true false "develop")
+                    (((comp (version :major `major
+                                     :minor `minor
+                                     :patch `patch)
+                            (version-bump branch))
+                      (fn [fileset]
+                        (git/git-add repo "version.properties")
+                        (git/git-commit repo (str "Bump version to " ver))
+                        (((release-start branch) handler) fileset)))
+                     fileset)))
+            1 (let [branch (first releases)
+                    ver    (nth (re-matches #"release/(.*)" branch) 1)]
+                (util/info "Resuming release: %s...%n" ver)
+                (git/git-checkout repo branch)
+                (((release-resume branch) handler) fileset))
+            (throw (Exception. "More than one release branch"))))))))
 
 (deftask finish []
   (fn [handler]
