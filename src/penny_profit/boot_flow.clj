@@ -4,7 +4,9 @@
             [clj-jgit.internal :as giti]
             [clj-jgit.porcelain :as git]
             [clj-jgit.querying :as gitq]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [clojure.string :as string]
+            [degree9.boot-semver :refer [get-version version]])
   (:import (java.io FileNotFoundException)
            (org.eclipse.jgit.api MergeCommand$FastForwardMode)
            (org.eclipse.jgit.lib ObjectId Ref)))
@@ -14,6 +16,8 @@
 (defn feature-finish [_] identity)
 (defn feature-start [_] identity)
 (defn feature-switch [_] identity)
+
+(def current-version (atom nil))
 
 (defn clean? [repo]
   (empty? (reduce set/union (vals (git/git-status repo)))))
@@ -33,6 +37,26 @@
                           1)))
               (filter some?))
         (git/git-branch-list repo)))
+
+(defn read-version!
+  ([] (read-version! (get-version)))
+  ([version]
+   (reset! current-version
+           (into [] (map read-string) (string/split version #"\.")))))
+
+(defn version-string [] (string/join "." @current-version))
+
+(defn major ([] (nth @current-version 0)) ([_] (major)))
+
+(defn minor ([] (nth @current-version 1)) ([_] (minor)))
+
+(defn patch ([] (nth @current-version 2)) ([_] (patch)))
+
+(defn bump-major! [] (swap! current-version (fn [[x _ _]] [(inc x) 0 0])))
+
+(defn bump-minor! [] (swap! current-version (fn [[x y _]] [x (inc y) 0])))
+
+(defn bump-patch! [] (swap! current-version (fn [[x y z]] [x y (inc z)])))
 
 (deftask init []
   (boot/with-pass-thru _
