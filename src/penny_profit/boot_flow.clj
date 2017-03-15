@@ -1,5 +1,6 @@
 (ns penny-profit.boot-flow
   (:require [boot.core :as boot, :refer [deftask]]
+            [boot.util :as util]
             [clj-jgit.internal :as giti]
             [clj-jgit.porcelain :as git]
             [clj-jgit.querying :as gitq]
@@ -30,13 +31,17 @@
   (boot/with-pass-thru _
     (let [repo     (try (git/load-repo ".")
                         (catch FileNotFoundException _
+                          (util/info "Initializing Git repo...%n")
                           (git/git-init)))
           _        (when (empty? (gitq/rev-list repo))
+                     (util/info "Creating initial commit...%n")
                      (git/git-commit repo "Initial commit"))
           branches (list-branches repo)]
       (when-not (contains? branches "master")
+        (util/info "Creating master branch...")
         (git/git-branch-create repo "master"))
       (when-not (contains? branches "develop")
+        (util/info "Creating develop branch...")
         (git/git-branch-create repo "develop")))))
 
 (deftask feature [n name NAME str "feature to switch to"]
@@ -56,11 +61,13 @@
               (throw (Exception. "Please specify feature name"))
 
               (contains? branches branch)
-              (do (git/git-checkout repo branch)
+              (do (util/info "Resuming %s...%n" branch)
+                  (git/git-checkout repo branch)
                   (((feature-start branch) handler) fileset))
 
               :else
-              (do (git/git-checkout repo branch true false "develop")
+              (do (util/info "Beginning %s...%n" branch)
+                  (git/git-checkout repo branch true false "develop")
                   (((feature-switch branch) handler) fileset))))
           (throw (Exception. "Please commit or stash your changes")))))))
 
@@ -73,6 +80,7 @@
             (case (nth (re-matches #"(feature)/.*" branch) 1)
               "feature"
               (do
+                (util/info "Finishing %s...%n" branch)
                 (git/git-checkout repo "develop")
                 (.. repo
                     merge
