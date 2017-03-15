@@ -18,6 +18,9 @@
 (defn clean? [repo]
   (empty? (reduce set/union (vals (git/git-status repo)))))
 
+(defn dirty? [repo]
+  (not (clean? repo)))
+
 (defn list-branches [repo]
   (into #{}
         (comp (map (fn [^Ref ref]
@@ -48,40 +51,41 @@
   (fn [handler]
     (fn [fileset]
       (let [repo (git/load-repo ".")]
-        (if (clean? repo)
-          (let [branches (list-branches repo)
-                features (into #{}
-                               (filter #(re-matches #"feature/.*" %))
-                               branches)
-                branch   (cond
-                           name                   (str "feature/" name)
-                           (= (count features) 1) (first features))]
-            (cond
-              (nil? branch)
-              (throw (Exception. "Please specify feature name"))
+        (when (dirty? repo)
+          (throw (Exception. "Please commit or stash your changes")))
+        (let [branches (list-branches repo)
+              features (into #{}
+                             (filter #(re-matches #"feature/.*" %))
+                             branches)
+              branch   (cond
+                         name                   (str "feature/" name)
+                         (= (count features) 1) (first features))]
+          (cond
+            (nil? branch)
+            (throw (Exception. "Please specify feature name"))
 
-              (contains? branches branch)
-              (do (util/info "Resuming %s...%n" branch)
-                  (git/git-checkout repo branch)
-                  (((feature-start branch) handler) fileset))
+            (contains? branches branch)
+            (do (util/info "Resuming %s...%n" branch)
+                (git/git-checkout repo branch)
+                (((feature-start branch) handler) fileset))
 
-              :else
-              (do (util/info "Beginning %s...%n" branch)
-                  (git/git-checkout repo branch true false "develop")
-                  (((feature-switch branch) handler) fileset))))
-          (throw (Exception. "Please commit or stash your changes")))))))
+            :else
+            (do (util/info "Beginning %s...%n" branch)
+                (git/git-checkout repo branch true false "develop")
+                (((feature-switch branch) handler) fileset))))))))
 
 (deftask finish []
   (fn [handler]
     (fn [fileset]
       (let [repo (git/load-repo ".")]
-        (if (clean? repo)
-          (let [branch (git/git-branch-current repo)]
-            (case (nth (re-matches #"(feature)/.*" branch) 1)
-              "feature"
-              (do
-                (util/info "Finishing %s...%n" branch)
-                (git/git-checkout repo "develop")
+        (when (dirty? repo)
+          (throw (Exception. "Please commit or stash your changes")))
+        (let [branch        (git/git-branch-current repo)
+              [_ type name] (re-matches #"(feature)/(.*)" branch)]
+          (util/info "Finishing %s: %s...%n" type name)
+          (case type
+            "feature"
+            (do (git/git-checkout repo "develop")
                 (.. repo
                     merge
                     (include ^ObjectId (giti/resolve-object branch repo))
@@ -89,5 +93,4 @@
                     (setMessage (str "Merge branch '" branch "' into develop"))
                     call)
                 (git/git-branch-delete repo [branch])
-                (((feature-finish branch) handler) fileset))))
-          (throw (Exception. "Please commit or stash your changes")))))))
+                (((feature-finish branch) handler) fileset))))))))
