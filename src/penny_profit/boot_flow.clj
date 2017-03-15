@@ -95,12 +95,12 @@
             (contains? branches branch)
             (do (util/info "Resuming feature: %s...%n" name)
                 (git/git-checkout repo branch)
-                (((feature-start branch) handler) fileset))
+                (((feature-switch branch) handler) fileset))
 
             :else
             (do (util/info "Starting feature: %s...%n" name)
                 (git/git-checkout repo branch true false "develop")
-                (((feature-switch branch) handler) fileset))))))))
+                (((feature-start branch) handler) fileset))))))))
 
 (deftask finish []
   (fn [handler]
