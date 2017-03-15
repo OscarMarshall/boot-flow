@@ -98,7 +98,7 @@
                 (((feature-start branch) handler) fileset))
 
             :else
-            (do (util/info "Beginning feature: %s...%n" name)
+            (do (util/info "Starting feature: %s...%n" name)
                 (git/git-checkout repo branch true false "develop")
                 (((feature-switch branch) handler) fileset))))))))
 
