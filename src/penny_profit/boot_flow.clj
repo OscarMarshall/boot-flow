@@ -56,4 +56,4 @@
               :else
               (do (git/git-checkout repo branch true false "develop")
                   (((feature-switch branch) handler) fileset))))
-          (throw (Exception. "Please commit or cache your changes")))))))
+          (throw (Exception. "Please commit or stash your changes")))))))
