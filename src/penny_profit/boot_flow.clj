@@ -8,7 +8,7 @@
             [clojure.string :as string]
             [degree9.boot-semver :refer [get-version version]])
   (:import (java.io FileNotFoundException)
-           (org.eclipse.jgit.api MergeCommand$FastForwardMode)
+           (org.eclipse.jgit.api Git MergeCommand$FastForwardMode)
            (org.eclipse.jgit.lib ObjectId Ref)))
 
 (set! *warn-on-reflection* true)
@@ -16,6 +16,8 @@
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
+(defn release-deploy [_] identity)
+(defn release-finish [_] identity)
 (defn release-resume [_] identity)
 (defn release-start [_] identity)
 (defn version-bump [_] identity)
@@ -31,6 +33,15 @@
 (defn ensure-clean [repo]
   (when (dirty? repo)
     (throw (Exception. "Please commit or stash your changes"))))
+
+(defn git-merge! [^Git repo branch]
+  (let [current-branch (git/git-branch-current repo)]
+    (.. repo
+        merge
+        (include ^ObjectId (giti/resolve-object branch repo))
+        (setFastForward MergeCommand$FastForwardMode/NO_FF)
+        (setMessage (str "Merge branch '" branch "' into " current-branch))
+        call)))
 
 (defn list-branches [repo]
   (into #{}
@@ -145,16 +156,23 @@
       (let [repo (git/load-repo ".")]
         (ensure-clean repo)
         (let [branch        (git/git-branch-current repo)
-              [_ type name] (re-matches #"(feature)/(.*)" branch)]
+              [_ type name] (re-matches #"(feature|release)/(.*)" branch)]
           (util/info "Finishing %s: %s...%n" type name)
           (case type
             "feature"
             (do (git/git-checkout repo "develop")
-                (.. repo
-                    merge
-                    (include ^ObjectId (giti/resolve-object branch repo))
-                    (setFastForward MergeCommand$FastForwardMode/NO_FF)
-                    (setMessage (str "Merge branch '" branch "' into develop"))
-                    call)
+                (git-merge! repo branch)
                 (git/git-branch-delete repo [branch])
-                (((feature-finish branch) handler) fileset))))))))
+                (((feature-finish branch) handler) fileset))
+
+            "release"
+            (do (git/git-checkout repo "master")
+                (git-merge! repo branch)
+                (.. repo tag (setName name) call)
+                (((release-deploy branch)
+                  (fn [fileset]
+                    (git/git-checkout repo "develop")
+                    (git-merge! repo branch)
+                    (git/git-branch-delete repo [branch])
+                    (((release-finish branch) handler) fileset)))
+                 fileset))))))))
