@@ -8,7 +8,7 @@
             [clojure.string :as string]
             [degree9.boot-semver :refer [get-version version]])
   (:import (java.io FileNotFoundException)
-           (org.eclipse.jgit.api MergeCommand$FastForwardMode)
+           (org.eclipse.jgit.api Git MergeCommand$FastForwardMode)
            (org.eclipse.jgit.lib ObjectId Ref)))
 
 (set! *warn-on-reflection* true)
@@ -31,6 +31,15 @@
 (defn ensure-clean [repo]
   (when (dirty? repo)
     (throw (Exception. "Please commit or stash your changes"))))
+
+(defn git-merge! [^Git repo branch]
+  (let [current-branch (git/git-branch-current repo)]
+    (.. repo
+        merge
+        (include ^ObjectId (giti/resolve-object branch repo))
+        (setFastForward MergeCommand$FastForwardMode/NO_FF)
+        (setMessage (str "Merge branch '" branch "' into " current-branch))
+        call)))
 
 (defn list-branches [repo]
   (into #{}
@@ -150,11 +159,6 @@
           (case type
             "feature"
             (do (git/git-checkout repo "develop")
-                (.. repo
-                    merge
-                    (include ^ObjectId (giti/resolve-object branch repo))
-                    (setFastForward MergeCommand$FastForwardMode/NO_FF)
-                    (setMessage (str "Merge branch '" branch "' into develop"))
-                    call)
+                (git-merge! repo branch)
                 (git/git-branch-delete repo [branch])
                 (((feature-finish branch) handler) fileset))))))))
