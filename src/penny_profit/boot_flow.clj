@@ -18,7 +18,7 @@
 (defn feature-start [_] identity)
 (defn hotfix-resume [_] identity)
 (defn hotfix-start [_] identity)
-(defn release-deploy [_] identity)
+(defn master-deploy [_] identity)
 (defn release-finish [_] identity)
 (defn release-resume [_] identity)
 (defn release-start [_] identity)
@@ -203,7 +203,7 @@
             (do (git/git-checkout repo "master")
                 (git-merge! repo branch)
                 (.. repo tag (setName name) call)
-                (((release-deploy branch)
+                (((master-deploy branch)
                   (fn [fileset]
                     (git/git-checkout repo "develop")
                     (git-merge! repo branch)
