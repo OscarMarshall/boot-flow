@@ -16,6 +16,7 @@
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
+(defn hotfix-finish [_] identity)
 (defn hotfix-resume [_] identity)
 (defn hotfix-start [_] identity)
 (defn master-deploy [_] identity)
@@ -198,6 +199,20 @@
                 (git-merge! repo branch)
                 (git/git-branch-delete repo [branch])
                 (((feature-finish branch) handler) fileset))
+
+            "hotfix"
+            (do (git/git-checkout repo "master")
+                (git-merge! repo branch)
+                (.. repo tag (setName name) call)
+                (((master-deploy branch)
+                  (fn [fileset]
+                    (let [branches (list-branches repo)
+                          release  (first (filter #(re-matches #"release" %)
+                                                  branches))]
+                      (git/git-checkout repo (or release "develop"))
+                      (git-merge! repo branch)
+                      (git/git-branch-delete repo [branch])
+                      (((hotfix-finish branch) handler) fileset))))))
 
             "release"
             (do (git/git-checkout repo "master")
