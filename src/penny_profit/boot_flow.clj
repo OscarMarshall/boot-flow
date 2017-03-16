@@ -16,6 +16,8 @@
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
+(defn release-deploy [_] identity)
+(defn release-finish [_] identity)
 (defn release-resume [_] identity)
 (defn release-start [_] identity)
 (defn version-bump [_] identity)
@@ -154,11 +156,23 @@
       (let [repo (git/load-repo ".")]
         (ensure-clean repo)
         (let [branch        (git/git-branch-current repo)
-              [_ type name] (re-matches #"(feature)/(.*)" branch)]
+              [_ type name] (re-matches #"(feature|release)/(.*)" branch)]
           (util/info "Finishing %s: %s...%n" type name)
           (case type
             "feature"
             (do (git/git-checkout repo "develop")
                 (git-merge! repo branch)
                 (git/git-branch-delete repo [branch])
-                (((feature-finish branch) handler) fileset))))))))
+                (((feature-finish branch) handler) fileset))
+
+            "release"
+            (do (git/git-checkout repo "master")
+                (git-merge! repo branch)
+                (.. repo tag (setName name) call)
+                (((release-deploy branch)
+                  (fn [fileset]
+                    (git/git-checkout repo "develop")
+                    (git-merge! repo branch)
+                    (git/git-branch-delete repo [branch])
+                    (((release-finish branch) handler) fileset)))
+                 fileset))))))))
