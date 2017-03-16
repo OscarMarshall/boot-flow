@@ -16,6 +16,8 @@
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
+(defn hotfix-resume [_] identity)
+(defn hotfix-start [_] identity)
 (defn release-deploy [_] identity)
 (defn release-finish [_] identity)
 (defn release-resume [_] identity)
@@ -115,6 +117,38 @@
             (do (util/info "Starting feature: %s...%n" name)
                 (git/git-checkout repo branch true false "develop")
                 (((feature-start branch) handler) fileset))))))))
+
+(deftask hotfix []
+  (fn [handler]
+    (fn [fileset]
+      (let [repo (git/load-repo ".")]
+        (ensure-clean repo)
+        (let [branches (list-branches repo)
+              hotfixes (into #{}
+                             (filter #(re-matches #"hotfix/.*" %))
+                             branches)]
+          (case (count hotfixes)
+            0 (do (read-version!)
+                  (bump-patch!)
+                  (let [ver    (version-string)
+                        branch (str "hotfix/" ver)]
+                    (util/info "Starting hotfix: %s...%n" ver)
+                    (git/git-checkout repo branch true false "master")
+                    (((comp (version :major `major
+                                     :minor `minor
+                                     :patch `patch)
+                            (version-bump branch))
+                      (fn [fileset]
+                        (git/git-add repo "version.properties")
+                        (git/git-commit repo (str "Bump version to " ver))
+                        (((hotfix-start branch) handler) fileset)))
+                     fileset)))
+            1 (let [branch (first hotfixes)
+                    ver    (nth (re-matches #"hotfix/(.*)" branch) 1)]
+                (util/info "Resuming hotfix: %s...%n" ver)
+                (git/git-checkout repo branch)
+                (((hotfix-resume branch) handler) fileset))
+            (throw (Exception. "More than one hotfix branch"))))))))
 
 (deftask release [t type TYPE kw "either :major or :minor"]
   (fn [handler]
