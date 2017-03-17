@@ -133,6 +133,16 @@
         (util/info "Creating develop branch...")
         (git/git-branch-create repo "develop")))))
 
+(deftask cancel []
+  (boot/with-pass-thru _
+    (let [repo   (git/load-repo ".")
+          branch (git/git-branch-current repo)]
+      (if (re-matches #"(feature|hotfix|release)/.*" branch)
+        (do (git/git-checkout repo "develop")
+            (git/git-branch-delete repo [branch]))
+        (throw (ex-info (str "Can't cancel branch: " branch)
+                        {:branch branch}))))))
+
 (deftask feature [n name NAME str "feature to switch to"]
   (fn [handler]
     (fn [fileset]
