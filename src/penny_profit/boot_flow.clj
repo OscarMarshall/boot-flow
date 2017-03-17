@@ -170,7 +170,8 @@
                 (util/info "Resuming hotfix: %s...%n" ver)
                 (git/git-checkout repo hotfix)
                 (hotfix-resume hotfix))
-              (let [_      (bump-patch!)
+              (let [_      (git/git-checkout repo "master")
+                    _      (bump-patch!)
                     ver    (version-string)
                     branch (str "hotfix/" ver)]
                 (util/info "Starting hotfix: %s...%n" ver)
@@ -190,7 +191,8 @@
                 (util/info "Resuming release: %s...%n" ver)
                 (git/git-checkout repo release)
                 (release-resume release))
-              (let [_      (case type
+              (let [_      (git/git-checkout repo "develop")
+                    _      (case type
                              :major (bump-major!)
                              :minor (bump-minor!))
                     ver    (version-string)
