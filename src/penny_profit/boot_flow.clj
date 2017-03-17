@@ -192,7 +192,8 @@
       (let [repo (git/load-repo ".")]
         (ensure-clean repo)
         (let [branch        (git/git-branch-current repo)
-              [_ type name] (re-matches #"(feature|release)/(.*)" branch)]
+              [_ type name] (re-matches #"(feature|hotfix|release)/(.*)"
+                                        branch)]
           (util/info "Finishing %s: %s...%n" type name)
           (((finish-check branch)
             (fn [fileset]
