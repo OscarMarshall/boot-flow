@@ -26,19 +26,19 @@
 (defn release-start [_] identity)
 (defn version-bump [_] identity)
 
-(def current-version (atom nil))
+(def ^:private current-version (atom nil))
 
-(defn clean? [repo]
+(defn- clean? [repo]
   (empty? (reduce set/union (vals (git/git-status repo)))))
 
-(defn dirty? [repo]
+(defn- dirty? [repo]
   (not (clean? repo)))
 
-(defn ensure-clean [repo]
+(defn- ensure-clean [repo]
   (when (dirty? repo)
     (throw (Exception. "Please commit or stash your changes"))))
 
-(defn git-merge! [^Git repo branch]
+(defn- git-merge! [^Git repo branch]
   (let [current-branch (git/git-branch-current repo)]
     (.. repo
         merge
@@ -47,7 +47,7 @@
         (setMessage (str "Merge branch '" branch "' into " current-branch))
         call)))
 
-(defn list-branches [repo]
+(defn- list-branches [repo]
   (into #{}
         (comp (map (fn [^Ref ref]
                      (nth (re-matches #"refs/heads/(.*)"
@@ -62,19 +62,19 @@
    (reset! current-version
            (into [] (map read-string) (string/split version #"\.")))))
 
-(defn version-string [] (string/join "." @current-version))
+(defn- version-string [] (string/join "." @current-version))
 
-(defn major ([] (nth @current-version 0)) ([_] (major)))
+(defn- major ([] (nth @current-version 0)) ([_] (major)))
 
-(defn minor ([] (nth @current-version 1)) ([_] (minor)))
+(defn- minor ([] (nth @current-version 1)) ([_] (minor)))
 
-(defn patch ([] (nth @current-version 2)) ([_] (patch)))
+(defn- patch ([] (nth @current-version 2)) ([_] (patch)))
 
-(defn bump-major! [] (swap! current-version (fn [[x _ _]] [(inc x) 0 0])))
+(defn- bump-major! [] (swap! current-version (fn [[x _ _]] [(inc x) 0 0])))
 
-(defn bump-minor! [] (swap! current-version (fn [[x y _]] [x (inc y) 0])))
+(defn- bump-minor! [] (swap! current-version (fn [[x y _]] [x (inc y) 0])))
 
-(defn bump-patch! [] (swap! current-version (fn [[x y z]] [x y (inc z)])))
+(defn- bump-patch! [] (swap! current-version (fn [[x y z]] [x y (inc z)])))
 
 (deftask init []
   (boot/with-pass-thru _
