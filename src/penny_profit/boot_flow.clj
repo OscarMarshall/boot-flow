@@ -252,14 +252,15 @@
         (ensure-clean repo)
         (let [branch (git/git-branch-current repo)]
           (if-let [[_ type ver] (re-matches #"(hotfix|release)/(.*)" branch)]
-            (((comp (version :develop     true
-                             :major       `major
-                             :minor       `minor
-                             :patch       `patch
-                             :pre-release `semver/snapshot)
-                    (snapshot-deploy branch))
-              handler)
-             fileset)
+            (do (read-version!)
+                (((comp (version :develop     true
+                                 :major       `major
+                                 :minor       `minor
+                                 :patch       `patch
+                                 :pre-release `semver/snapshot)
+                        (snapshot-deploy branch))
+                  handler)
+                 fileset))
             (throw (ex-info (str "Can't make pre-release branch: " branch)
                             {:branch branch}))))))))
 
