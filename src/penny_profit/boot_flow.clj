@@ -87,7 +87,6 @@
 
 (defn- delete-branch! [repo branch]
   (boot/with-pass-thru _
-    (git/git-checkout repo "develop")
     (git/git-branch-delete repo [branch])))
 
 (defn- incorporate-changes!
@@ -163,6 +162,7 @@
         (ensure-clean repo)
         (if-let [[_ type name] (re-matches working-branch-re branch)]
           (do (util/info "Canceling %s: %s..." type name)
+              (git/git-checkout repo "develop")
               (((comp (delete-branch! repo branch)
                       (case type
                         "feature" (feature-cancel branch)
