@@ -8,25 +8,37 @@
             [clojure.string :as string]
             [degree9.boot-semver :refer [get-version version]])
   (:import (java.io FileNotFoundException)
-           (org.eclipse.jgit.api Git MergeCommand$FastForwardMode)
-           (org.eclipse.jgit.lib ObjectId Ref)))
+           (org.eclipse.jgit.api Git MergeCommand$FastForwardMode MergeResult)
+           (org.eclipse.jgit.lib ObjectId Ref)
+           (org.eclipse.jgit.revwalk RevCommit)))
 
 (set! *warn-on-reflection* true)
 
+(defn feature-cancel [_] identity)
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
 (defn finish-check [_] identity)
+(defn hotfix-cancel [_] identity)
 (defn hotfix-finish [_] identity)
 (defn hotfix-resume [_] identity)
 (defn hotfix-start [_] identity)
 (defn master-deploy [_] identity)
+(defn release-cancel [_] identity)
 (defn release-finish [_] identity)
 (defn release-resume [_] identity)
 (defn release-start [_] identity)
 (defn version-bump [_] identity)
 
 (def ^:private current-version (atom nil))
+
+(def working-branch-re #"(feature|hotfix|release)/(.*)")
+
+(defn- english-list [xs]
+  (let [xs-count (count xs)]
+    (string/join (if (> xs-count 2) ", " " ")
+                 (cond-> xs
+                   (> xs-count 1) (update (dec xs-count) #(str "and " %))))))
 
 (defn- clean? [repo]
   (empty? (reduce set/union (vals (git/git-status repo)))))
@@ -37,6 +49,9 @@
 (defn- ensure-clean [repo]
   (when (dirty? repo)
     (throw (Exception. "Please commit or stash your changes"))))
+
+(defn- merge-conflicts [^MergeResult result]
+  (into {} (.getConflicts result)))
 
 (defn- git-merge! [^Git repo branch]
   (let [current-branch (git/git-branch-current repo)]
@@ -70,12 +85,18 @@
   ([repo type] (list-branches repo type false))
   ([repo] (list-branches repo nil)))
 
+(defn- delete-branch! [repo branch]
+  (boot/with-pass-thru _
+    (git/git-branch-delete repo [branch])))
+
 (defn- incorporate-changes!
   ([repo branch destination]
    (boot/with-pass-thru _
      (git/git-checkout repo destination)
-     (git-merge! repo branch)
-     (git/git-branch-delete repo [branch])))
+     (let [merge-result (git-merge! repo branch)]
+       (when-let [conflicts (keys (merge-conflicts merge-result))]
+         (throw (ex-info (str "Conflicts found in " (english-list conflicts))
+                         {:conflicts conflicts}))))))
   ([repo branch] (incorporate-changes! repo branch "develop")))
 
 (defn- make-production! [^Git repo branch]
@@ -134,14 +155,23 @@
         (git/git-branch-create repo "develop")))))
 
 (deftask cancel []
-  (boot/with-pass-thru _
-    (let [repo   (git/load-repo ".")
-          branch (git/git-branch-current repo)]
-      (if (re-matches #"(feature|hotfix|release)/.*" branch)
-        (do (git/git-checkout repo "develop")
-            (git/git-branch-delete repo [branch]))
-        (throw (ex-info (str "Can't cancel branch: " branch)
-                        {:branch branch}))))))
+  (fn [handler]
+    (fn [fileset]
+      (let [repo   (git/load-repo ".")
+            branch (git/git-branch-current repo)]
+        (ensure-clean repo)
+        (if-let [[_ type name] (re-matches working-branch-re branch)]
+          (do (util/info "Canceling %s: %s..." type name)
+              (git/git-checkout repo "develop")
+              (((comp (delete-branch! repo branch)
+                      (case type
+                        "feature" (feature-cancel branch)
+                        "hotfix"  (hotfix-cancel branch)
+                        "release" (release-cancel branch)))
+                handler)
+               fileset))
+          (throw (ex-info (str "Can't cancel branch: " branch)
+                          {:branch branch})))))))
 
 (deftask feature [n name NAME str "feature to switch to"]
   (fn [handler]
@@ -218,25 +248,44 @@
     (fn [fileset]
       (let [repo (git/load-repo ".")]
         (ensure-clean repo)
-        (let [branch        (git/git-branch-current repo)
-              [_ type name] (re-matches #"(feature|hotfix|release)/(.*)"
-                                        branch)]
+        (let [branch             (git/git-branch-current repo)
+              [_ working-branch] (re-matches #"Merge branch '(.*)' into .*"
+                                             (-> repo
+                                                 git/git-log
+                                                 ^RevCommit first
+                                                 .getShortMessage))
+              resuming           (contains? (list-branches repo) working-branch)
+              working-branch     (if resuming working-branch branch)
+              [_ type name]      (re-matches working-branch-re working-branch)]
           (util/info "Finishing %s: %s...%n" type name)
-          (((comp (finish-check branch)
-                  (case type
-                    "feature" (comp (incorporate-changes! repo branch)
-                                    (feature-finish branch))
-                    "hotfix"  (comp (make-production! repo branch)
-                                    (master-deploy branch)
-                                    (incorporate-changes!
-                                     repo
-                                     branch
-                                     (or (list-branches repo "release" true)
-                                         "develop"))
-                                    (hotfix-finish branch))
-                    "release" (comp (make-production! repo branch)
-                                    (master-deploy branch)
-                                    (incorporate-changes! repo branch)
-                                    (release-finish branch))))
+          (((comp
+             (finish-check branch)
+             (case type
+               "feature" (comp (if resuming
+                                 identity
+                                 (incorporate-changes! repo working-branch))
+                               (delete-branch! repo working-branch)
+                               (feature-finish working-branch))
+               "hotfix"  (comp (if resuming
+                                 identity
+                                 (comp (make-production! repo working-branch)
+                                       (master-deploy working-branch)
+                                       (incorporate-changes!
+                                        repo
+                                        working-branch
+                                        (or (list-branches repo
+                                                           "release"
+                                                           true)
+                                            "develop"))))
+                               (delete-branch! repo working-branch)
+                               (hotfix-finish working-branch))
+               "release" (comp (if resuming
+                                 identity
+                                 (comp (make-production! repo working-branch)
+                                       (master-deploy working-branch)
+                                       (incorporate-changes! repo
+                                                             working-branch)))
+                               (delete-branch! repo working-branch)
+                               (release-finish working-branch))))
             handler)
            fileset))))))
