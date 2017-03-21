@@ -258,32 +258,34 @@
               working-branch     (if resuming working-branch branch)
               [_ type name]      (re-matches working-branch-re working-branch)]
           (util/info "Finishing %s: %s...%n" type name)
-          (((comp (finish-check branch)
-                  (case type
-                    "feature" (comp (if resuming
-                                      identity
-                                      (incorporate-changes! repo branch))
-                                    (delete-branch! repo branch)
-                                    (feature-finish branch))
-                    "hotfix"  (comp (if resuming
-                                      identity
-                                      (comp (make-production! repo branch)
-                                            (master-deploy branch)
-                                            (incorporate-changes!
-                                             repo
-                                             branch
-                                             (or (list-branches repo
-                                                                "release"
-                                                                true)
-                                                 "develop"))))
-                                    (delete-branch! repo branch)
-                                    (hotfix-finish branch))
-                    "release" (comp (if resuming
-                                      identity
-                                      (comp (make-production! repo branch)
-                                            (master-deploy branch)
-                                            (incorporate-changes! repo branch)))
-                                    (delete-branch! repo branch)
-                                    (release-finish branch))))
+          (((comp
+             (finish-check branch)
+             (case type
+               "feature" (comp (if resuming
+                                 identity
+                                 (incorporate-changes! repo working-branch))
+                               (delete-branch! repo working-branch)
+                               (feature-finish working-branch))
+               "hotfix"  (comp (if resuming
+                                 identity
+                                 (comp (make-production! repo working-branch)
+                                       (master-deploy working-branch)
+                                       (incorporate-changes!
+                                        repo
+                                        working-branch
+                                        (or (list-branches repo
+                                                           "release"
+                                                           true)
+                                            "develop"))))
+                               (delete-branch! repo working-branch)
+                               (hotfix-finish working-branch))
+               "release" (comp (if resuming
+                                 identity
+                                 (comp (make-production! repo working-branch)
+                                       (master-deploy working-branch)
+                                       (incorporate-changes! repo
+                                                             working-branch)))
+                               (delete-branch! repo working-branch)
+                               (release-finish working-branch))))
             handler)
            fileset))))))
