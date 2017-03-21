@@ -255,7 +255,7 @@
                              :minor       `minor
                              :patch       `patch
                              :pre-release `semver/snapshot)
-                    (snapshot-deploy))
+                    (snapshot-deploy branch))
               handler)
              fileset)
             (throw (ex-info (str "Can't make pre-release branch: " branch)
