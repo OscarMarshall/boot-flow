@@ -164,11 +164,12 @@
         (if-let [[_ type name] (re-matches working-branch-re branch)]
           (do (util/info "Canceling %s: %s..." type name)
               (git/git-checkout repo "develop")
-              (((comp (delete-branch! repo branch)
-                      (case type
-                        "feature" (feature-cancel branch)
-                        "hotfix"  (hotfix-cancel branch)
-                        "release" (release-cancel branch)))
+              (git/git-branch-delete repo [branch] true)
+              ((((case type
+                   "feature" feature-cancel
+                   "hotfix"  hotfix-cancel
+                   "release" release-cancel)
+                 branch)
                 handler)
                fileset))
           (throw (ex-info (str "Can't cancel branch: " branch)
