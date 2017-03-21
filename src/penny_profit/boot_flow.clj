@@ -28,6 +28,7 @@
 (defn release-finish [_] identity)
 (defn release-resume [_] identity)
 (defn release-start [_] identity)
+(defn snapshot-deploy [_] identity)
 (defn version-bump [_] identity)
 
 (def ^:private current-version (atom nil))
@@ -81,7 +82,7 @@
        (<= (count branches) 1) (first branches)
        :else                   (throw (ex-info (format "More than one %s branch"
                                                        type)
-                                               branches)))))
+                                               {:branches branches})))))
   ([repo type] (list-branches repo type false))
   ([repo] (list-branches repo nil)))
 
