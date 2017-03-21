@@ -11,7 +11,8 @@
          '[penny-profit.boot-flow :as flow]
          '[robert.hooke :refer [add-hook]])
 
-(task-options! push {:repo "deploy-clojars"})
+(task-options! pom  {:project 'penny-profit/boot-flow}
+               push {:repo "deploy-clojars"})
 
 (add-hook #'flow/master-deploy (fn [handler _]
                                  (comp (build-jar) (push-release) handler)))

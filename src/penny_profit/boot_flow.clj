@@ -252,7 +252,8 @@
         (ensure-clean repo)
         (let [branch (git/git-branch-current repo)]
           (if-let [[_ type ver] (re-matches #"(hotfix|release)/(.*)" branch)]
-            (((comp (version :major       `major
+            (((comp (version :develop     true
+                             :major       `major
                              :minor       `minor
                              :patch       `patch
                              :pre-release `semver/snapshot)
