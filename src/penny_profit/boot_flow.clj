@@ -137,6 +137,7 @@
   (boot/with-pass-thru _
     (let [repo   (git/load-repo ".")
           branch (git/git-branch-current repo)]
+      (ensure-clean repo)
       (if (re-matches #"(feature|hotfix|release)/.*" branch)
         (do (git/git-checkout repo "develop")
             (git/git-branch-delete repo [branch]))
