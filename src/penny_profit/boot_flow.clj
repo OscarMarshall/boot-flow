@@ -234,9 +234,7 @@
                 (git/git-checkout repo release)
                 (release-resume release))
               (let [_      (git/git-checkout repo "develop")
-                    _      (case type
-                             :major (bump-major!)
-                             :minor (bump-minor!))
+                    _      ((case type :major bump-major!, :minor bump-minor!))
                     ver    (version-string)
                     branch (str "release/" ver)]
                 (util/info "Starting release: %s...%n" ver)
