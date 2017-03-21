@@ -6,7 +6,7 @@
             [clj-jgit.querying :as gitq]
             [clojure.set :as set]
             [clojure.string :as string]
-            [degree9.boot-semver :refer [get-version version]])
+            [degree9.boot-semver :as semver :refer [get-version version]])
   (:import (java.io FileNotFoundException)
            (org.eclipse.jgit.api Git MergeCommand$FastForwardMode MergeResult)
            (org.eclipse.jgit.lib ObjectId Ref)
@@ -242,6 +242,23 @@
                 (comp (commit-version! repo) (release-start branch))))
             handler)
            fileset))))))
+
+(deftask snapshot []
+  (fn [handler]
+    (fn [fileset]
+      (let [repo (git/load-repo ".")]
+        (ensure-clean repo)
+        (let [branch (git/git-branch-current repo)]
+          (if-let [[_ type ver] (re-matches #"(hotfix|release)/(.*)" branch)]
+            (((comp (version :major       `major
+                             :minor       `minor
+                             :patch       `patch
+                             :pre-release `semver/snapshot)
+                    (snapshot-deploy))
+              handler)
+             fileset)
+            (throw (ex-info (str "Can't make pre-release branch: " branch)
+                            {:branch branch}))))))))
 
 (deftask finish []
   (fn [handler]
