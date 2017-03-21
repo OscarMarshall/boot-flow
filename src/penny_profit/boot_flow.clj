@@ -249,7 +249,7 @@
       (let [repo (git/load-repo ".")]
         (ensure-clean repo)
         (let [branch             (git/git-branch-current repo)
-              [_ working-branch] (re-matches #"Merge branch '(.*)' into develop"
+              [_ working-branch] (re-matches #"Merge branch '(.*)' into .*"
                                              (-> repo
                                                  git/git-log
                                                  ^RevCommit first
