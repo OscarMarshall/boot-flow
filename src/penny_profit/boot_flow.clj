@@ -88,11 +88,13 @@
 
 (defn- delete-branch! [repo branch]
   (boot/with-pass-thru _
+    (util/dbug "Deleting %s..." branch)
     (git/git-branch-delete repo [branch])))
 
 (defn- incorporate-changes!
   ([repo branch destination]
    (boot/with-pass-thru _
+     (util/dbug "Merging %s into %s..." branch destination)
      (git/git-checkout repo destination)
      (let [merge-result (git-merge! repo branch)]
        (when-let [conflicts (keys (merge-conflicts merge-result))]
@@ -102,6 +104,7 @@
 
 (defn- make-production! [^Git repo branch]
   (boot/with-pass-thru _
+    (util/dbug "Merging %s into master..." branch)
     (let [[_ name] (re-matches #"(?:release|hotfix)/(.*)" branch)]
       (git/git-checkout repo "master")
       (git-merge! repo branch)
