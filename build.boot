@@ -14,8 +14,8 @@
 (task-options! pom  {:project 'penny-profit/boot-flow}
                push {:repo "deploy-clojars"})
 
-(add-hook #'flow/master-deploy (fn [handler _]
-                                 (comp (build-jar) (push-release) handler)))
+(add-hook #'flow/production-deploy (fn [handler _]
+                                     (comp (build-jar) (push-release) handler)))
 
 (add-hook #'flow/snapshot-deploy (fn [handler _]
                                    (comp (build-jar) (push-snapshot) handler)))

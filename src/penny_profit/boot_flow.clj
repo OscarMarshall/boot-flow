@@ -23,7 +23,7 @@
 (defn hotfix-finish [_] identity)
 (defn hotfix-resume [_] identity)
 (defn hotfix-start [_] identity)
-(defn master-deploy [_] identity)
+(defn production-deploy [_] identity)
 (defn release-cancel [_] identity)
 (defn release-finish [_] identity)
 (defn release-resume [_] identity)
@@ -290,7 +290,7 @@
                "hotfix"  (comp (if resuming
                                  identity
                                  (comp (make-production! repo working-branch)
-                                       (master-deploy working-branch)
+                                       (production-deploy working-branch)
                                        (incorporate-changes!
                                         repo
                                         working-branch
@@ -303,7 +303,7 @@
                "release" (comp (if resuming
                                  identity
                                  (comp (make-production! repo working-branch)
-                                       (master-deploy working-branch)
+                                       (production-deploy working-branch)
                                        (incorporate-changes! repo
                                                              working-branch)))
                                (delete-branch! repo working-branch)
