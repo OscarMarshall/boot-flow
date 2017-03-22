@@ -255,7 +255,8 @@
         (ensure-clean repo)
         (let [branch (git/git-branch-current repo)]
           (if-let [[_ type ver] (re-matches #"(hotfix|release)/(.*)" branch)]
-            (do (read-version!)
+            (do (util/info "Snapshotting %s: %s...%n" type ver)
+                (read-version!)
                 (((comp (version :develop     true
                                  :major       `major
                                  :minor       `minor
@@ -264,7 +265,7 @@
                         (snapshot-deploy branch))
                   handler)
                  fileset))
-            (throw (ex-info (str "Can't make pre-release branch: " branch)
+            (throw (ex-info (str "Can't snapshot branch: " branch)
                             {:branch branch}))))))))
 
 (deftask finish []
