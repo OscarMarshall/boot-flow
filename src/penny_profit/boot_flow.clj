@@ -14,11 +14,11 @@
 
 (set! *warn-on-reflection* true)
 
+(defn code-check [_] identity)
 (defn feature-cancel [_] identity)
 (defn feature-finish [_] identity)
 (defn feature-resume [_] identity)
 (defn feature-start [_] identity)
-(defn finish-check [_] identity)
 (defn hotfix-cancel [_] identity)
 (defn hotfix-finish [_] identity)
 (defn hotfix-resume [_] identity)
@@ -284,7 +284,7 @@
               [_ type name]      (re-matches working-branch-re working-branch)]
           (util/info "Finishing %s: %s...%n" type name)
           (((comp
-             (finish-check branch)
+             (code-check branch)
              (case type
                "feature" (comp (if resuming
                                  identity
