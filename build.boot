@@ -1,5 +1,7 @@
 (set-env! :dependencies   '[[adzerk/bootlaces "0.1.13" :scope "test"]
                             [clj-jgit "0.8.9"]
+                            [com.fzakaria/slf4j-timbre "0.3.4" :scope "test"]
+                            [com.taoensso/timbre "4.8.0" :scope "test"]
                             [degree9/boot-semver "1.4.4"
                              :exclusions [org.clojure/clojure]]
                             [org.clojure/clojure "1.9.0-alpha14"
