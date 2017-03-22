@@ -88,13 +88,13 @@
 
 (defn- delete-branch! [repo branch]
   (boot/with-pass-thru _
-    (util/dbug "Deleting %s..." branch)
+    (util/dbug "Deleting %s...%n" branch)
     (git/git-branch-delete repo [branch])))
 
 (defn- incorporate-changes!
   ([repo branch destination]
    (boot/with-pass-thru _
-     (util/dbug "Merging %s into %s..." branch destination)
+     (util/dbug "Merging %s into %s...%n" branch destination)
      (git/git-checkout repo destination)
      (let [merge-result (git-merge! repo branch)]
        (when-let [conflicts (keys (merge-conflicts merge-result))]
@@ -104,7 +104,7 @@
 
 (defn- make-production! [^Git repo branch]
   (boot/with-pass-thru _
-    (util/dbug "Merging %s into master..." branch)
+    (util/dbug "Merging %s into master...%n" branch)
     (let [[_ name] (re-matches #"(?:release|hotfix)/(.*)" branch)]
       (git/git-checkout repo "master")
       (git-merge! repo branch)
@@ -152,10 +152,10 @@
                      (git/git-commit repo "Initial commit"))
           branches (list-branches repo)]
       (when-not (contains? branches "master")
-        (util/info "Creating master branch...")
+        (util/info "Creating master branch...%n")
         (git/git-branch-create repo "master"))
       (when-not (contains? branches "develop")
-        (util/info "Creating develop branch...")
+        (util/info "Creating develop branch...%n")
         (git/git-branch-create repo "develop")))))
 
 (deftask cancel []
@@ -165,7 +165,7 @@
             branch (git/git-branch-current repo)]
         (ensure-clean repo)
         (if-let [[_ type name] (re-matches working-branch-re branch)]
-          (do (util/info "Canceling %s: %s..." type name)
+          (do (util/info "Canceling %s: %s...%n" type name)
               (git/git-checkout repo "develop")
               (git/git-branch-delete repo [branch] true)
               ((((case type
