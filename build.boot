@@ -1,11 +1,11 @@
-(set-env! :dependencies '[[adzerk/bootlaces "0.1.13"]
-                          [clj-jgit "0.8.9"]
-                          [degree9/boot-semver "1.4.4"
-                           :exclusions [org.clojure/clojure]]
-                          [org.clojure/clojure "1.9.0-alpha14"
-                           :scope "provided"]
-                          [robert/hooke "1.3.0"]]
-          :source-paths #{"src"})
+(set-env! :dependencies   '[[adzerk/bootlaces "0.1.13"]
+                            [clj-jgit "0.8.9"]
+                            [degree9/boot-semver "1.4.4"
+                             :exclusions [org.clojure/clojure]]
+                            [org.clojure/clojure "1.9.0-alpha14"
+                             :scope "provided"]
+                            [robert/hooke "1.3.0"]]
+          :resource-paths #{"src"})
 
 (require '[adzerk.bootlaces :refer :all]
          '[penny-profit.boot-flow :as flow]
