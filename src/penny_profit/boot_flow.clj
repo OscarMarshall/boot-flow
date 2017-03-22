@@ -257,7 +257,8 @@
           (if-let [[_ type ver] (re-matches #"(hotfix|release)/(.*)" branch)]
             (do (util/info "Snapshotting %s: %s...%n" type ver)
                 (read-version!)
-                (((comp (version :develop     true
+                (((comp (code-check branch)
+                        (version :develop     true
                                  :major       `major
                                  :minor       `minor
                                  :patch       `patch
