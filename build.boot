@@ -4,12 +4,12 @@
                             [com.fzakaria/slf4j-timbre "0.3.4"
                              :exclusions [org.clojure/clojure]
                              :scope      "test"]
-                            [com.taoensso/timbre "4.8.0"
+                            [com.taoensso/timbre "4.9.0-alpha1"
                              :exclusions [org.clojure/clojure]
                              :scope      "test"]
                             [degree9/boot-semver "1.4.4"
                              :exclusions [org.clojure/clojure]]
-                            [org.clojure/clojure "1.9.0-alpha14"
+                            [org.clojure/clojure "1.9.0-alpha15"
                              :scope "provided"]
                             [robert/hooke "1.3.0" :scope "test"]]
           :resource-paths #{"src"})
