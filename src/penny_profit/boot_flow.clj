@@ -295,6 +295,7 @@
                "hotfix"  (comp (if resuming
                                  identity
                                  (comp (make-production! repo working-branch)
+                                       (version)
                                        (production-deploy working-branch)
                                        (incorporate-changes!
                                         repo
@@ -308,6 +309,7 @@
                "release" (comp (if resuming
                                  identity
                                  (comp (make-production! repo working-branch)
+                                       (version)
                                        (production-deploy working-branch)
                                        (incorporate-changes! repo
                                                              working-branch)))
