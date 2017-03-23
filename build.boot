@@ -18,8 +18,11 @@
          '[penny-profit.boot-flow :as flow]
          '[robert.hooke :refer [add-hook]])
 
-(task-options! pom  {:project 'penny-profit/boot-flow}
-               push {:repo "deploy-clojars"})
+(task-options!
+ pom  {:description "git-flow tasks for boot"
+       :project     'penny-profit/boot-flow
+       :scm         {:url "https://github.com/PennyProfit/boot-flow"}}
+ push {:repo "deploy-clojars"})
 
 (defn production-deploy [handler branch]
   (comp (build-jar) (push-release) (handler branch)))
