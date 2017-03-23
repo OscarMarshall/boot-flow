@@ -107,8 +107,7 @@
     (util/dbug "Merging %s into master...%n" branch)
     (let [[_ name] (re-matches #"(?:release|hotfix)/(.*)" branch)]
       (git/git-checkout repo "master")
-      (git-merge! repo branch)
-      (.. repo tag (setName name) call))))
+      (git-merge! repo branch))))
 
 (defn- read-version! []
   (reset! current-version
